@@ -40,17 +40,17 @@ Start the training process, here we use huggingface transformers
 as an example to hold a model on GPU 0.
 """
 
-train_model = AutoModelForCausalLM.from_pretrained("facebook/opt-125m")
+train_model = AutoModelForCausalLM.from_pretrained("/root/.cache/modelscope/hub/models/facebook/opt-125m")
 train_model.to("cuda:0")
 """
 Start the inference process, here we use vLLM to hold a model on GPU 1 and 
 GPU 2. For the details on how to use ray, please refer to the ray 
 documentation https://docs.ray.io/en/latest/ .
 """
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 ray.init()
 
-pg_inference = placement_group([{"GPU": 1, "CPU": 0}] * 2)
+pg_inference = placement_group([{"GPU": 1, "CPU": 0}])
 ray.get(pg_inference.ready())
 scheduling_inference = PlacementGroupSchedulingStrategy(
     placement_group=pg_inference,
@@ -66,10 +66,10 @@ llm = ray.remote(
     num_gpus=0,
     scheduling_strategy=scheduling_inference,
 )(MyLLM).remote(
-    model="facebook/opt-125m",
+    model="/root/.cache/modelscope/hub/models/facebook/opt-125m",
     enforce_eager=True,
     worker_extension_cls="rlhf_utils.WorkerExtension",
-    tensor_parallel_size=2,
+    tensor_parallel_size=1,
     distributed_executor_backend="ray",
 )
 
